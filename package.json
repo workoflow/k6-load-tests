@@ -1,0 +1,37 @@
+{
+  "name": "k6-load-tests",
+  "version": "1.0.0",
+  "description": "k6 load testing suite for MS Teams Bot (workoflow-bot)",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "test:local": "k6 run --env ENV=local tests/simple-message.test.js",
+    "test:stage": "k6 run --env ENV=stage tests/simple-message.test.js",
+    "test:prod": "k6 run --env ENV=prod tests/simple-message.test.js",
+    "smoke:local": "k6 run --env ENV=local tests/smoke.test.js",
+    "smoke:stage": "k6 run --env ENV=stage tests/smoke.test.js",
+    "smoke:prod": "k6 run --env ENV=prod tests/smoke.test.js",
+    "generate-token": "node scripts/generate-token.js",
+    "verify": "node scripts/verify-setup.js"
+  },
+  "keywords": [
+    "k6",
+    "load-testing",
+    "performance",
+    "ms-teams",
+    "bot-framework"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "botframework-connector": "^4.23.3",
+    "dotenv": "^16.4.5",
+    "uuid": "^10.0.0"
+  },
+  "devDependencies": {
+    "k6": "^0.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
