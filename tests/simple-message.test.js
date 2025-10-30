@@ -131,11 +131,18 @@ export default function () {
 
   // Prepare request
   const payload = JSON.stringify(activity);
+  const headers = {
+    'Content-Type': 'application/json',
+  };
+
+  // Only add Authorization header if token is provided
+  // (for authenticated environments like STAGE/PROD)
+  if (config.token) {
+    headers['Authorization'] = `Bearer ${config.token}`;
+  }
+
   const params = {
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': config.token ? `Bearer ${config.token}` : '',
-    },
+    headers: headers,
     tags: {
       name: 'SendMessage',
     },
@@ -169,8 +176,8 @@ export default function () {
 export function setup() {
   console.log(`\n🚀 Starting load test for ${ENV.toUpperCase()} environment`);
   console.log(`📍 Endpoint: ${config.endpoint}`);
-  console.log(`👤 App ID: ${config.appId}`);
-  console.log(`🔑 Token: ${config.token ? 'Provided ✓' : 'Missing ✗'}`);
+  console.log(`👤 App ID: ${config.appId || 'Not configured (unauthenticated mode)'}`);
+  console.log(`🔑 Token: ${config.token ? 'Provided ✓' : 'Not required (unauthenticated mode) ✓'}`);
   console.log('─'.repeat(60));
 
   return { startTime: new Date() };

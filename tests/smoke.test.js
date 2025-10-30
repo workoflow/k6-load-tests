@@ -142,11 +142,18 @@ export default function () {
 
     const activity = createActivity('smoke test');
     const payload = JSON.stringify(activity);
+
+    const headers = {
+      'Content-Type': 'application/json',
+    };
+
+    // Only add Authorization header if token is provided
+    if (config.token) {
+      headers['Authorization'] = `Bearer ${config.token}`;
+    }
+
     const params = {
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': config.token ? `Bearer ${config.token}` : '',
-      },
+      headers: headers,
     };
 
     const response = http.post(config.endpoint, payload, params);
@@ -187,8 +194,10 @@ export default function () {
   console.log('─'.repeat(60));
 
   // Summary
-  if (!config.token) {
-    console.warn('\n⚠️  No BOT_TOKEN provided. Run `npm run generate-token` first.');
+  if (!config.token && config.appId) {
+    console.warn('\n⚠️  No BOT_TOKEN provided but credentials configured. Run `npm run generate-token` first.');
+  } else if (!config.token && !config.appId) {
+    console.log('\n✓ Running in unauthenticated mode (local development)');
   }
 
   console.log('\n💡 If smoke test passes, you can run full load tests:');

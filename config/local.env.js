@@ -10,10 +10,11 @@ export const config = {
   endpoint: __ENV.LOCAL_BOT_ENDPOINT || 'http://localhost:3978/api/messages',
 
   // Microsoft Bot Framework Credentials
+  // Leave empty for local development without authentication (Bot Framework Emulator mode)
   credentials: {
-    appId: __ENV.LOCAL_MICROSOFT_APP_ID,
-    appPassword: __ENV.LOCAL_MICROSOFT_APP_PASSWORD,
-    tenantId: __ENV.LOCAL_MICROSOFT_APP_TENANT_ID,
+    appId: __ENV.LOCAL_MICROSOFT_APP_ID || '',
+    appPassword: __ENV.LOCAL_MICROSOFT_APP_PASSWORD || '',
+    tenantId: __ENV.LOCAL_MICROSOFT_APP_TENANT_ID || '',
   },
 
   // Bot Framework Service URL

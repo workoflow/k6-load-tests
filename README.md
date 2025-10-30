@@ -90,19 +90,23 @@ Run the verification script to ensure everything is configured correctly:
 npm run verify
 ```
 
-### 4. Generate JWT Token
+### 4. Generate JWT Token (If Required)
 
-Generate a valid Bot Framework JWT token for your environment:
+**For LOCAL development without Bot Framework credentials** (emulator mode):
+- Skip this step! Leave `LOCAL_MICROSOFT_APP_ID`, `LOCAL_MICROSOFT_APP_PASSWORD`, and `LOCAL_MICROSOFT_APP_TENANT_ID` empty in `.env`
+- The tests will run without authentication (perfect for local development)
+
+**For STAGE/PROD or LOCAL with credentials**, generate a valid Bot Framework JWT token:
 
 ```bash
-# For local environment
-npm run generate-token -- local
-
 # For stage environment
 npm run generate-token -- stage
 
 # For prod environment
 npm run generate-token -- prod
+
+# For local with credentials
+npm run generate-token -- local
 ```
 
 Copy the generated token and export it as an environment variable:
@@ -116,13 +120,15 @@ export BOT_TOKEN="<your-generated-token>"
 Before running full load tests, verify connectivity with a smoke test:
 
 ```bash
-# Local
+# Local (no token needed if credentials are empty)
 npm run smoke:local
 
-# Stage
+# Stage (requires BOT_TOKEN)
+export BOT_TOKEN="<your-stage-token>"
 npm run smoke:stage
 
-# Prod
+# Prod (requires BOT_TOKEN)
+export BOT_TOKEN="<your-prod-token>"
 npm run smoke:prod
 ```
 
@@ -131,13 +137,15 @@ npm run smoke:prod
 Once the smoke test passes, run the full load test:
 
 ```bash
-# Local
+# Local (no token needed if credentials are empty)
 npm run test:local
 
-# Stage
+# Stage (requires BOT_TOKEN)
+export BOT_TOKEN="<your-stage-token>"
 npm run test:stage
 
-# Prod (use with caution!)
+# Prod (requires BOT_TOKEN - use with caution!)
+export BOT_TOKEN="<your-prod-token>"
 npm run test:prod
 ```
 
