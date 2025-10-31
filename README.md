@@ -1,17 +1,23 @@
 # k6 Load Tests for MS Teams Bot
 
-Comprehensive load testing suite for the **workoflow-bot** Microsoft Teams Bot using [k6](https://k6.io/), Grafana's open-source load testing tool. This project uses Microsoft's official Bot Framework libraries for proper authentication and message formatting.
+Simple load testing suite for the **workoflow-bot** Microsoft Teams Bot using [k6](https://k6.io/), Grafana's open-source load testing tool.
 
 ## 🎯 Overview
 
-This project provides a production-ready load testing environment for testing MS Teams bots that use the Microsoft Bot Framework. It includes:
+This project provides a straightforward load testing environment for testing the workoflow-bot. It includes:
 
-- ✅ **Proper Bot Framework Authentication** using `botframework-connector`
-- ✅ **Valid Activity Format** following Bot Framework v4 schema
-- ✅ **Multi-Environment Support** (LOCAL, STAGE, PROD)
-- ✅ **Best Practice Test Scenarios** (smoke tests, load tests)
-- ✅ **Helper Scripts** for token generation and setup verification
+- ✅ **Simple Setup** - Single `BOT_ENDPOINT` variable
+- ✅ **No Authentication Complexity** - Uses `LOAD_TEST_MODE=true`
+- ✅ **Full Workflow Testing** - Tests bot message processing and n8n webhook calls
+- ✅ **Best Practice Test Scenarios** - Smoke tests and load tests
 - ✅ **Comprehensive Documentation**
+
+### How It Works
+
+The bot runs in `LOAD_TEST_MODE=true` which:
+- ✅ Receives and processes messages normally
+- ✅ Calls the n8n webhook (testing the full workflow)
+- ✅ Skips sending Bot Framework replies (avoiding authentication requirements)
 
 ## 📋 Prerequisites
 
@@ -19,11 +25,7 @@ Before you begin, ensure you have:
 
 1. **Node.js** >= 18.0.0
 2. **k6** installed ([Installation Guide](https://k6.io/docs/get-started/installation/))
-3. **Microsoft Bot Framework Credentials**:
-   - App ID (MicrosoftAppId)
-   - App Password (MicrosoftAppPassword)
-   - Tenant ID (MicrosoftAppTenantId)
-4. **Access to bot endpoints** (local, stage, or production)
+3. **workoflow-bot** running locally with `LOAD_TEST_MODE=true`
 
 ### Installing k6
 
@@ -54,140 +56,101 @@ npm install
 
 ### 2. Configure Environment
 
-Copy the example environment file and fill in your credentials:
+Copy `.env.example` to `.env` (already done by default):
 
 ```bash
 cp .env.example .env
 ```
 
-Edit `.env` and add your Bot Framework credentials:
-
-```env
-# LOCAL Environment
-LOCAL_MICROSOFT_APP_ID=your-local-app-id
-LOCAL_MICROSOFT_APP_PASSWORD=your-local-app-password
-LOCAL_MICROSOFT_APP_TENANT_ID=your-local-tenant-id
-LOCAL_BOT_ENDPOINT=http://localhost:3978/api/messages
-
-# STAGE Environment
-STAGE_MICROSOFT_APP_ID=your-stage-app-id
-STAGE_MICROSOFT_APP_PASSWORD=your-stage-app-password
-STAGE_MICROSOFT_APP_TENANT_ID=your-stage-tenant-id
-STAGE_BOT_ENDPOINT=https://stage.example.com/api/messages
-
-# PROD Environment
-PROD_MICROSOFT_APP_ID=your-prod-app-id
-PROD_MICROSOFT_APP_PASSWORD=your-prod-app-password
-PROD_MICROSOFT_APP_TENANT_ID=your-prod-tenant-id
-PROD_BOT_ENDPOINT=https://prod.example.com/api/messages
-```
-
-### 3. Verify Setup
-
-Run the verification script to ensure everything is configured correctly:
+The default configuration uses `http://localhost:3978/api/messages`. To test a different endpoint:
 
 ```bash
-npm run verify
+# Edit .env and change BOT_ENDPOINT
+BOT_ENDPOINT=https://your-bot.azurewebsites.net/api/messages
 ```
 
-### 4. Generate JWT Token (If Required)
+### 3. Start the Bot in Load Test Mode
 
-**For LOCAL development without Bot Framework credentials** (emulator mode):
-- Skip this step! Leave `LOCAL_MICROSOFT_APP_ID`, `LOCAL_MICROSOFT_APP_PASSWORD`, and `LOCAL_MICROSOFT_APP_TENANT_ID` empty in `.env`
-- The tests will run without authentication (perfect for local development)
-
-**For STAGE/PROD or LOCAL with credentials**, generate a valid Bot Framework JWT token:
+In the workoflow-bot directory:
 
 ```bash
-# For stage environment
-npm run generate-token -- stage
-
-# For prod environment
-npm run generate-token -- prod
-
-# For local with credentials
-npm run generate-token -- local
+cd ../workoflow-bot
+LOAD_TEST_MODE=true npm start
 ```
 
-Copy the generated token and export it as an environment variable:
+### 4. Run Smoke Test
+
+Verify connectivity with a smoke test:
 
 ```bash
-export BOT_TOKEN="<your-generated-token>"
+npm run smoke
 ```
 
-### 5. Run Smoke Test
-
-Before running full load tests, verify connectivity with a smoke test:
-
-```bash
-# Local (no token needed if credentials are empty)
-npm run smoke:local
-
-# Stage (requires BOT_TOKEN)
-export BOT_TOKEN="<your-stage-token>"
-npm run smoke:stage
-
-# Prod (requires BOT_TOKEN)
-export BOT_TOKEN="<your-prod-token>"
-npm run smoke:prod
-```
-
-### 6. Run Load Test
+### 5. Run Load Test
 
 Once the smoke test passes, run the full load test:
 
 ```bash
-# Local (no token needed if credentials are empty)
-npm run test:local
-
-# Stage (requires BOT_TOKEN)
-export BOT_TOKEN="<your-stage-token>"
-npm run test:stage
-
-# Prod (requires BOT_TOKEN - use with caution!)
-export BOT_TOKEN="<your-prod-token>"
-npm run test:prod
+npm test
 ```
 
 ## 📁 Project Structure
 
 ```
 k6-load-tests/
-├── config/                      # Environment configurations
-│   ├── local.env.js            # Local environment config
-│   ├── stage.env.js            # Stage environment config
-│   └── prod.env.js             # Production environment config
-│
-├── lib/                         # Shared libraries
-│   ├── auth-helper.js          # Bot Framework authentication
-│   ├── activity-factory.js     # Activity creation helpers
-│   └── constants.js            # Shared constants
-│
 ├── tests/                       # k6 test scripts
 │   ├── simple-message.test.js  # Basic message load test
 │   └── smoke.test.js           # Connectivity smoke test
 │
 ├── scripts/                     # Helper scripts
-│   ├── generate-token.js       # JWT token generator
-│   └── verify-setup.js         # Setup verification
+│   └── verify-setup.js         # Verify setup configuration
 │
-├── .env.example                 # Environment template
-├── .env                         # Your credentials (gitignored)
-├── .gitignore                   # Git ignore rules
+├── .env                         # Environment configuration
+├── .env.example                 # Template environment file
 ├── package.json                 # Node.js dependencies
 ├── README.md                    # This file
 └── CHANGELOG.md                 # Version history
 ```
 
+## 🔧 Configuration
+
+All configuration is done through environment variables in `.env`:
+
+```bash
+# Bot endpoint to test (local or remote)
+BOT_ENDPOINT=http://localhost:3978/api/messages
+
+# Test configuration
+TEST_MESSAGE=test
+
+# Load Test User Identity
+TEST_USER_ID=29:load-test-user
+TEST_USER_NAME="Load Test User"
+TEST_USER_AAD_OBJECT_ID=45908692-019e-4436-810c-b417f58f5f4f
+```
+
+You can also override these via command line:
+
+```bash
+# Test a different endpoint
+BOT_ENDPOINT=https://stage-bot.azurewebsites.net/api/messages npm test
+
+# Test with a different message
+TEST_MESSAGE="Hello bot!" npm test
+
+# Or use k6 directly
+k6 run --env BOT_ENDPOINT=http://remote-bot:3978/api/messages tests/simple-message.test.js
+```
+
 ## 🔧 How It Works
 
-### Authentication Flow
+### Message Flow
 
-1. **Token Generation**: The `auth-helper.js` uses Microsoft's `botframework-connector` library to generate a signed JWT token using your App ID and Password.
-
-2. **Token Validation**: The bot's `CloudAdapter` automatically validates incoming JWT tokens using the Bot Framework authentication system.
-
-3. **Token Usage**: k6 includes the JWT token in the `Authorization: Bearer <token>` header of each HTTP request.
+1. **k6 sends message** → Bot endpoint (from `BOT_ENDPOINT` variable)
+2. **Bot receives message** → Processes it normally
+3. **Bot calls n8n webhook** → Full workflow is tested
+4. **Bot skips reply** → No Bot Framework authentication needed (LOAD_TEST_MODE)
+5. **Bot returns 200/202** → Test passes
 
 ### Activity Structure
 
@@ -196,8 +159,8 @@ Messages sent to the bot follow the Bot Framework Activity schema:
 ```javascript
 {
   type: "message",
-  id: "<unique-uuid>",
-  timestamp: "2025-10-30T10:30:00Z",
+  id: "load-test-<timestamp>-<random>",
+  timestamp: "2025-10-31T10:30:00Z",
   channelId: "msteams",
 
   from: {
@@ -208,16 +171,15 @@ Messages sent to the bot follow the Bot Framework Activity schema:
   },
 
   recipient: {
-    id: "<bot-app-id>",
-    name: "Bot",
+    id: "workoflow-bot",
+    name: "Workoflow Bot",
     role: "bot"
   },
 
   conversation: {
-    id: "test-conversation-123",
+    id: "test-conversation-<timestamp>",
     conversationType: "personal",
-    isGroup: false,
-    tenantId: "<tenant-id>"
+    isGroup: false
   },
 
   text: "test",
@@ -227,7 +189,7 @@ Messages sent to the bot follow the Bot Framework Activity schema:
 }
 ```
 
-### Load Test Stages
+### Load Test Profile
 
 The default load test profile:
 
@@ -253,8 +215,7 @@ After running a test, k6 provides detailed metrics:
 
 ```
 ✓ status is 200 or 202
-✓ response time < 1000ms
-✓ no error in response
+✓ response time < 2000ms
 
 http_req_duration..............: avg=245ms    min=120ms  med=230ms  max=450ms  p(95)=380ms
 http_req_failed................: 0.00%   ✓ 0     ✗ 150
@@ -270,76 +231,54 @@ iterations.....................: 150     5/s
 
 ## 🔍 Troubleshooting
 
-### Token Generation Fails
+### Bot Not Started in Load Test Mode
 
-**Problem:** `Error generating Bot Framework token`
+**Problem:** Tests fail with errors
 
-**Solutions:**
-1. Verify credentials in `.env` are correct
-2. Check internet connectivity (token generation requires online access)
-3. Ensure App Password is still valid (they can expire)
-4. Try regenerating credentials in Azure Portal
+**Solution:** Ensure the bot is started with `LOAD_TEST_MODE=true`:
 
-### 401 Unauthorized Error
-
-**Problem:** Bot returns 401 status code
-
-**Solutions:**
-1. Generate a fresh token: `npm run generate-token -- local`
-2. Verify the token hasn't expired (valid for ~1 hour)
-3. Check that App ID matches between `.env` and bot configuration
-4. Ensure bot is configured with correct credentials
-
-### 403 Forbidden Error
-
-**Problem:** Bot returns 403 status code
-
-**Solutions:**
-1. Verify the bot's tenant ID matches your credentials
-2. Check that the App ID has proper permissions
-3. Ensure the bot is published and accessible
-
-### 404 Not Found Error
-
-**Problem:** Bot endpoint not found
-
-**Solutions:**
-1. Verify the endpoint URL in `.env` is correct
-2. For local testing, ensure the bot is running (`npm start` in workoflow-bot)
-3. Check network connectivity to remote environments
+```bash
+cd ../workoflow-bot
+LOAD_TEST_MODE=true npm start
+```
 
 ### Connection Timeout
 
 **Problem:** Requests timeout or take too long
 
 **Solutions:**
-1. Check network connectivity
-2. For local testing, ensure localhost is not blocked by firewall
-3. Verify the bot application is running and healthy
-4. Check bot application logs for errors
+1. Check that the bot is running: `curl http://localhost:3978/api/health`
+2. Verify `BOT_ENDPOINT` is correct in `.env`
+3. Check bot application logs for errors
+4. Ensure n8n webhook is accessible
+
+### 500 Internal Server Error
+
+**Problem:** Bot returns 500 status code
+
+**Solutions:**
+1. Check bot logs for errors
+2. Verify n8n webhook URL is configured correctly in workoflow-bot
+3. Ensure n8n is running and healthy
+4. Confirm `LOAD_TEST_MODE=true` is set in workoflow-bot
+
+### Wrong Endpoint
+
+**Problem:** Tests can't connect to bot
+
+**Solution:** Check your BOT_ENDPOINT configuration:
+
+```bash
+# View current configuration
+cat .env | grep BOT_ENDPOINT
+
+# Test the endpoint manually
+curl -X POST http://localhost:3978/api/messages \
+  -H "Content-Type: application/json" \
+  -d '{"type":"message","text":"test"}'
+```
 
 ## 🎨 Customizing Tests
-
-### Creating Custom Test Scenarios
-
-Create a new test file in `tests/`:
-
-```javascript
-import http from 'k6/http';
-import { check } from 'k6';
-
-export const options = {
-  stages: [
-    { duration: '30s', target: 10 },  // Ramp to 10 users
-    { duration: '1m', target: 10 },   // Stay at 10 users
-    { duration: '10s', target: 0 },   // Ramp down
-  ],
-};
-
-export default function() {
-  // Your test logic here
-}
-```
 
 ### Modifying Load Profiles
 
@@ -357,32 +296,46 @@ export const options = {
 
 ### Adding Custom Messages
 
-Modify the activity creation in test scripts:
+Use the `TEST_MESSAGE` environment variable:
 
-```javascript
-const activity = createActivity('Hello, bot! This is a custom message.');
+```bash
+TEST_MESSAGE="Hello, bot! This is a custom test." npm test
 ```
 
-### Testing Different Conversation Types
+Or modify in `.env`:
 
-Change the conversation type in `activity-factory.js`:
+```bash
+TEST_MESSAGE=Custom test message
+```
 
-```javascript
-conversation: {
-  conversationType: 'group',  // or 'channel'
-  isGroup: true,
-  // ...
-}
+### Testing Different Endpoints
+
+```bash
+# Test local bot
+BOT_ENDPOINT=http://localhost:3978/api/messages npm test
+
+# Test remote bot
+BOT_ENDPOINT=https://your-bot.azurewebsites.net/api/messages npm test
+
+# Test staging
+BOT_ENDPOINT=https://stage-bot.example.com/api/messages npm test
 ```
 
 ## 🔐 Security Best Practices
 
-1. **Never commit `.env` file** - It contains sensitive credentials
-2. **Use different credentials per environment** - Don't reuse production credentials
-3. **Rotate credentials regularly** - Especially after testing
-4. **Limit production testing** - Only test production with explicit authorization
-5. **Monitor bot logs** - Watch for unusual activity during tests
-6. **Use test users** - Create dedicated test user accounts if possible
+1. **Only use LOAD_TEST_MODE for testing** - Never in production
+2. **Limit production testing** - Only test production with explicit authorization
+3. **Monitor bot logs** - Watch for unusual activity during tests
+4. **Use test webhooks** - Point to test n8n instances, not production
+5. **Rate limiting** - Be respectful of rate limits when testing remote endpoints
+
+## 📝 Available npm Scripts
+
+```bash
+npm test         # Run full load test
+npm run smoke    # Run smoke test (quick connectivity check)
+npm run verify   # Verify setup configuration
+```
 
 ## 🤝 Contributing
 
@@ -390,7 +343,7 @@ To add new features or tests:
 
 1. Create a new branch
 2. Add your changes
-3. Test thoroughly in local environment
+3. Test thoroughly with `npm run smoke` then `npm test`
 4. Update documentation
 5. Submit a pull request
 
@@ -404,16 +357,14 @@ For issues or questions:
 
 1. Check the [Troubleshooting](#-troubleshooting) section
 2. Review k6 documentation: https://k6.io/docs/
-3. Review Bot Framework docs: https://docs.microsoft.com/en-us/azure/bot-service/
-4. Check the bot application logs in `workoflow-bot`
+3. Check the bot application logs in `workoflow-bot`
+4. Verify `LOAD_TEST_MODE=true` is set in the bot
 
 ## 📚 Additional Resources
 
 - [k6 Documentation](https://k6.io/docs/)
 - [k6 Test Types](https://k6.io/docs/test-types/introduction/)
-- [Bot Framework Documentation](https://docs.microsoft.com/en-us/azure/bot-service/)
 - [Bot Framework Activity Schema](https://docs.microsoft.com/en-us/azure/bot-service/rest-api/bot-framework-rest-connector-api-reference)
-- [Microsoft Teams Bot Development](https://docs.microsoft.com/en-us/microsoftteams/platform/bots/what-are-bots)
 
 ---
 

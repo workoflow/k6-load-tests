@@ -5,55 +5,23 @@
  * and can process a single message. Use this before running full load tests.
  *
  * Usage:
- *   k6 run --env ENV=local tests/smoke.test.js
- *   k6 run --env ENV=stage tests/smoke.test.js
- *   k6 run --env ENV=prod tests/smoke.test.js
+ *   k6 run tests/smoke.test.js
+ *   k6 run --env BOT_ENDPOINT=http://remote-bot:3978/api/messages tests/smoke.test.js
  *
  * Prerequisites:
- *   - Run `npm run generate-token` to get a valid JWT token
- *   - Set BOT_TOKEN environment variable
+ *   - Start bot with: LOAD_TEST_MODE=true npm start
+ *   - Set BOT_ENDPOINT in .env (default: http://localhost:3978/api/messages)
  */
 
 import http from 'k6/http';
 import { check, group } from 'k6';
 
-// Load environment configuration
-const ENV = __ENV.ENV || 'local';
-let config;
+// Load bot endpoint from environment
+const BOT_ENDPOINT = __ENV.BOT_ENDPOINT || 'http://localhost:3978/api/messages';
+const HEALTH_ENDPOINT = BOT_ENDPOINT.replace('/api/messages', '/api/health');
 
-switch (ENV.toLowerCase()) {
-  case 'local':
-    config = {
-      endpoint: __ENV.LOCAL_BOT_ENDPOINT || 'http://localhost:3978/api/messages',
-      healthEndpoint: __ENV.LOCAL_BOT_ENDPOINT ?
-        __ENV.LOCAL_BOT_ENDPOINT.replace('/api/messages', '/api/health') :
-        'http://localhost:3978/api/health',
-      appId: __ENV.LOCAL_MICROSOFT_APP_ID,
-      tenantId: __ENV.LOCAL_MICROSOFT_APP_TENANT_ID,
-      token: __ENV.BOT_TOKEN,
-    };
-    break;
-  case 'stage':
-    config = {
-      endpoint: __ENV.STAGE_BOT_ENDPOINT,
-      healthEndpoint: __ENV.STAGE_BOT_ENDPOINT?.replace('/api/messages', '/api/health'),
-      appId: __ENV.STAGE_MICROSOFT_APP_ID,
-      tenantId: __ENV.STAGE_MICROSOFT_APP_TENANT_ID,
-      token: __ENV.BOT_TOKEN,
-    };
-    break;
-  case 'prod':
-    config = {
-      endpoint: __ENV.PROD_BOT_ENDPOINT,
-      healthEndpoint: __ENV.PROD_BOT_ENDPOINT?.replace('/api/messages', '/api/health'),
-      appId: __ENV.PROD_MICROSOFT_APP_ID,
-      tenantId: __ENV.PROD_MICROSOFT_APP_TENANT_ID,
-      token: __ENV.BOT_TOKEN,
-    };
-    break;
-  default:
-    throw new Error(`Unknown environment: ${ENV}`);
-}
+console.log(`Bot endpoint: ${BOT_ENDPOINT}`);
+console.log(`Health endpoint: ${HEALTH_ENDPOINT}`);
 
 // Test configuration - single VU, one iteration
 export const options = {
@@ -65,7 +33,6 @@ export const options = {
   },
   tags: {
     test_type: 'smoke',
-    environment: ENV,
   },
 };
 
@@ -90,7 +57,7 @@ function createActivity(text = 'smoke test') {
     },
 
     recipient: {
-      id: config.appId,
+      id: 'workoflow-bot',
       name: 'Workoflow Bot',
       role: 'bot',
     },
@@ -99,7 +66,6 @@ function createActivity(text = 'smoke test') {
       id: conversationId,
       conversationType: 'personal',
       isGroup: false,
-      tenantId: config.tenantId,
     },
 
     text: text,
@@ -114,27 +80,25 @@ function createActivity(text = 'smoke test') {
  * Main smoke test function
  */
 export default function () {
-  console.log(`\n🔍 Running smoke test for ${ENV.toUpperCase()} environment`);
-  console.log(`📍 Endpoint: ${config.endpoint}`);
+  console.log(`\n🔍 Running smoke test`);
+  console.log(`📍 Endpoint: ${BOT_ENDPOINT}`);
   console.log('─'.repeat(60));
 
-  // Test 1: Health Check (if available)
-  if (config.healthEndpoint) {
-    group('Health Check', () => {
-      console.log('Testing health endpoint...');
-      const healthResponse = http.get(config.healthEndpoint);
+  // Test 1: Health Check
+  group('Health Check', () => {
+    console.log('Testing health endpoint...');
+    const healthResponse = http.get(HEALTH_ENDPOINT);
 
-      const healthOk = check(healthResponse, {
-        'health endpoint is accessible': (r) => r.status === 200,
-      });
-
-      if (healthOk) {
-        console.log('✓ Health check passed');
-      } else {
-        console.warn(`⚠ Health check returned: ${healthResponse.status}`);
-      }
+    const healthOk = check(healthResponse, {
+      'health endpoint is accessible': (r) => r.status === 200,
     });
-  }
+
+    if (healthOk) {
+      console.log('✓ Health check passed');
+    } else {
+      console.warn(`⚠ Health check returned: ${healthResponse.status}`);
+    }
+  });
 
   // Test 2: Bot Endpoint Connectivity
   group('Bot Endpoint Connectivity', () => {
@@ -147,40 +111,29 @@ export default function () {
       'Content-Type': 'application/json',
     };
 
-    // Only add Authorization header if token is provided
-    if (config.token) {
-      headers['Authorization'] = `Bearer ${config.token}`;
-    }
-
     const params = {
       headers: headers,
     };
 
-    const response = http.post(config.endpoint, payload, params);
+    const response = http.post(BOT_ENDPOINT, payload, params);
 
+    // LOAD_TEST_MODE: Expect success (200 or 202)
     const checks = check(response, {
       'endpoint is reachable': (r) => r.status !== 0,
       'status is 200 or 202': (r) => r.status === 200 || r.status === 202,
-      'status is not 401 (auth OK)': (r) => r.status !== 401,
-      'status is not 403 (forbidden)': (r) => r.status !== 403,
-      'status is not 500 (server error)': (r) => r.status !== 500,
       'response time < 5s': (r) => r.timings.duration < 5000,
     });
 
     console.log(`Response status: ${response.status}`);
     console.log(`Response time: ${response.timings.duration.toFixed(2)}ms`);
 
-    if (response.status === 401) {
-      console.error('❌ Authentication failed - Check your BOT_TOKEN');
-    } else if (response.status === 403) {
-      console.error('❌ Forbidden - Check bot permissions and credentials');
+    if (response.status === 200 || response.status === 202) {
+      console.log('✓ Message sent successfully');
     } else if (response.status === 404) {
       console.error('❌ Not Found - Check the endpoint URL');
     } else if (response.status >= 500) {
       console.error('❌ Server error - Check bot application logs');
       console.error(`Response body: ${response.body}`);
-    } else if (response.status === 200 || response.status === 202) {
-      console.log('✓ Message sent successfully');
     } else {
       console.warn(`⚠ Unexpected status: ${response.status}`);
       console.warn(`Response body: ${response.body}`);
@@ -192,14 +145,7 @@ export default function () {
   });
 
   console.log('─'.repeat(60));
-
-  // Summary
-  if (!config.token && config.appId) {
-    console.warn('\n⚠️  No BOT_TOKEN provided but credentials configured. Run `npm run generate-token` first.');
-  } else if (!config.token && !config.appId) {
-    console.log('\n✓ Running in unauthenticated mode (local development)');
-  }
-
+  console.log('\n✓ Running in LOAD_TEST_MODE (no authentication required)');
   console.log('\n💡 If smoke test passes, you can run full load tests:');
-  console.log(`   npm run test:${ENV}\n`);
+  console.log('   npm test\n');
 }

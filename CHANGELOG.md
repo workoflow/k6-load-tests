@@ -78,6 +78,86 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.0.0] - 2025-10-31
+
+### Breaking Changes
+- **SIMPLIFIED CONFIGURATION**: Removed multi-environment complexity in favor of single `BOT_ENDPOINT` variable
+- Removed environment-specific config files (config/local.env.js, config/stage.env.js, config/prod.env.js)
+- Removed authentication complexity - now uses `LOAD_TEST_MODE=true` for simplified testing
+- Changed npm scripts from 14 environment-specific scripts to 3 simple scripts
+
+### Removed
+- **Deleted config/ directory** - Unused environment-specific configuration files
+- **Deleted lib/ directory** - Unused authentication and activity factory helpers (not needed with LOAD_TEST_MODE)
+  - `lib/auth-helper.js` - JWT token generation (not needed)
+  - `lib/activity-factory.js` - Activity creation helper (tests create inline)
+  - `lib/constants.js` - Bot Framework constants (not imported)
+- **Deleted scripts/generate-token.js** - Token generation not needed with LOAD_TEST_MODE
+- **Deleted scripts/test-with-token.sh** - Authentication bypass script not needed
+- Removed environment-specific variables (LOCAL_*, STAGE_*, PROD_* prefixes)
+- Removed authentication checks from smoke tests
+- Removed botframework-connector dependency (authentication not needed)
+
+### Changed
+- **Simplified .env configuration** to single `BOT_ENDPOINT` variable
+- **Simplified npm scripts**:
+  - Before: 14 scripts (test:local, test:stage, test:prod, smoke:local, etc.)
+  - After: 3 scripts (test, smoke, verify)
+- **Simplified test files**:
+  - Removed ENV parameter and switch/case logic
+  - Tests now read BOT_ENDPOINT directly with sensible defaults
+  - Removed authentication complexity from smoke.test.js
+- **Updated README.md** - Complete rewrite for simplified single-endpoint approach
+- **Simplified .env.example** template to match new structure
+
+### Improved
+- **Much simpler workflow**: Set BOT_ENDPOINT → Run test → Done
+- **No authentication complexity** - LOAD_TEST_MODE bypasses Bot Framework auth
+- **Clearer mental model** - One configuration approach instead of multiple environments
+- **Reduced dependencies** - Removed botframework-connector (no longer needed)
+- **Better documentation** - Focused on the simplified approach
+
+### Migration Guide
+If upgrading from 1.0.0:
+
+1. **Update .env file**:
+   ```bash
+   # Old (1.0.0)
+   LOCAL_BOT_ENDPOINT=http://localhost:3978/api/messages
+   STAGE_BOT_ENDPOINT=https://stage.example.com/api/messages
+   # ... etc
+
+   # New (2.0.0)
+   BOT_ENDPOINT=http://localhost:3978/api/messages
+   ```
+
+2. **Update npm scripts**:
+   ```bash
+   # Old (1.0.0)
+   npm run test:local
+   npm run smoke:stage
+
+   # New (2.0.0)
+   npm test
+   npm run smoke
+   # Use BOT_ENDPOINT env var to test different endpoints
+   BOT_ENDPOINT=https://stage.example.com/api/messages npm test
+   ```
+
+3. **Start bot with LOAD_TEST_MODE**:
+   ```bash
+   cd ../workoflow-bot
+   LOAD_TEST_MODE=true npm start
+   ```
+
+### Technical Details
+- Requires workoflow-bot with LOAD_TEST_MODE=true support
+- No authentication tokens needed
+- Single unified configuration approach
+- Compatible with any bot endpoint (local or remote)
+
+---
+
 ## [Unreleased]
 
 ### Planned Features

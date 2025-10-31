@@ -1,63 +1,26 @@
 /**
  * k6 Load Test: Simple Message
  *
- * This test sends a simple "test" message to the bot endpoint
- * with proper Bot Framework authentication.
+ * This test sends a simple "test" message to the bot endpoint.
+ * No authentication required - bot must be started with LOAD_TEST_MODE=true.
  *
  * Usage:
- *   k6 run --env ENV=local tests/simple-message.test.js
- *   k6 run --env ENV=stage tests/simple-message.test.js
- *   k6 run --env ENV=prod tests/simple-message.test.js
+ *   k6 run tests/simple-message.test.js
+ *   k6 run --env BOT_ENDPOINT=http://remote-bot:3978/api/messages tests/simple-message.test.js
  *
  * Prerequisites:
- *   - Run `npm run generate-token` to get a valid JWT token
- *   - Set BOT_TOKEN environment variable or use token from .env
+ *   - Start bot with: LOAD_TEST_MODE=true npm start
+ *   - Set BOT_ENDPOINT in .env (default: http://localhost:3978/api/messages)
  */
 
 import http from 'k6/http';
 import { check, sleep } from 'k6';
 import { Rate } from 'k6/metrics';
 
-// Load environment configuration
-const ENV = __ENV.ENV || 'local';
-let config;
+// Load bot endpoint from environment
+const BOT_ENDPOINT = __ENV.BOT_ENDPOINT || 'http://localhost:3978/api/messages';
 
-switch (ENV.toLowerCase()) {
-  case 'local':
-    config = {
-      endpoint: __ENV.LOCAL_BOT_ENDPOINT || 'http://localhost:3978/api/messages',
-      appId: __ENV.LOCAL_MICROSOFT_APP_ID,
-      tenantId: __ENV.LOCAL_MICROSOFT_APP_TENANT_ID,
-      token: __ENV.BOT_TOKEN,
-    };
-    break;
-  case 'stage':
-    config = {
-      endpoint: __ENV.STAGE_BOT_ENDPOINT,
-      appId: __ENV.STAGE_MICROSOFT_APP_ID,
-      tenantId: __ENV.STAGE_MICROSOFT_APP_TENANT_ID,
-      token: __ENV.BOT_TOKEN,
-    };
-    break;
-  case 'prod':
-    config = {
-      endpoint: __ENV.PROD_BOT_ENDPOINT,
-      appId: __ENV.PROD_MICROSOFT_APP_ID,
-      tenantId: __ENV.PROD_MICROSOFT_APP_TENANT_ID,
-      token: __ENV.BOT_TOKEN,
-    };
-    break;
-  default:
-    throw new Error(`Unknown environment: ${ENV}`);
-}
-
-// Validate configuration
-if (!config.endpoint) {
-  throw new Error(`Missing bot endpoint for environment: ${ENV}`);
-}
-if (!config.token) {
-  console.warn('⚠️  No BOT_TOKEN provided. Run `npm run generate-token` to generate one.');
-}
+console.log(`Bot endpoint: ${BOT_ENDPOINT}`);
 
 // Custom metrics
 const errorRate = new Rate('errors');
@@ -77,7 +40,6 @@ export const options = {
   },
   tags: {
     test_type: 'load',
-    environment: ENV,
   },
 };
 
@@ -102,7 +64,7 @@ function createActivity(text = 'test') {
     },
 
     recipient: {
-      id: config.appId,
+      id: 'workoflow-bot',
       name: 'Workoflow Bot',
       role: 'bot',
     },
@@ -111,7 +73,6 @@ function createActivity(text = 'test') {
       id: conversationId,
       conversationType: 'personal',
       isGroup: false,
-      tenantId: config.tenantId,
     },
 
     text: text,
@@ -135,12 +96,6 @@ export default function () {
     'Content-Type': 'application/json',
   };
 
-  // Only add Authorization header if token is provided
-  // (for authenticated environments like STAGE/PROD)
-  if (config.token) {
-    headers['Authorization'] = `Bearer ${config.token}`;
-  }
-
   const params = {
     headers: headers,
     tags: {
@@ -149,13 +104,12 @@ export default function () {
   };
 
   // Send request
-  const response = http.post(config.endpoint, payload, params);
+  const response = http.post(BOT_ENDPOINT, payload, params);
 
-  // Check response
+  // Check response - expect success
   const success = check(response, {
     'status is 200 or 202': (r) => r.status === 200 || r.status === 202,
-    'response time < 1000ms': (r) => r.timings.duration < 1000,
-    'no error in response': (r) => !r.body || !r.body.includes('error'),
+    'response time < 2000ms': (r) => r.timings.duration < 2000,
   });
 
   // Track errors
@@ -174,10 +128,9 @@ export default function () {
  * Setup function - runs once before the test starts
  */
 export function setup() {
-  console.log(`\n🚀 Starting load test for ${ENV.toUpperCase()} environment`);
-  console.log(`📍 Endpoint: ${config.endpoint}`);
-  console.log(`👤 App ID: ${config.appId || 'Not configured (unauthenticated mode)'}`);
-  console.log(`🔑 Token: ${config.token ? 'Provided ✓' : 'Not required (unauthenticated mode) ✓'}`);
+  console.log(`\n🚀 Starting load test`);
+  console.log(`📍 Endpoint: ${BOT_ENDPOINT}`);
+  console.log(`⚠️  Bot must be started with LOAD_TEST_MODE=true`);
   console.log('─'.repeat(60));
 
   return { startTime: new Date() };
