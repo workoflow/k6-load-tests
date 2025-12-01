@@ -66,6 +66,7 @@ function createActivity(text = 'smoke test') {
       id: conversationId,
       conversationType: 'personal',
       isGroup: false,
+      tenantId: 'ae6f26a3-6f27-4ed6-a3a8-800c3226fb79',
     },
 
     text: text,
@@ -87,7 +88,9 @@ export default function () {
   // Test 1: Health Check
   group('Health Check', () => {
     console.log('Testing health endpoint...');
-    const healthResponse = http.get(HEALTH_ENDPOINT);
+    const healthResponse = http.get(HEALTH_ENDPOINT, {
+      headers: { 'x-api-key': __ENV.LOAD_TEST_API_KEY || '' },
+    });
 
     const healthOk = check(healthResponse, {
       'health endpoint is accessible': (r) => r.status === 200,
@@ -109,6 +112,7 @@ export default function () {
 
     const headers = {
       'Content-Type': 'application/json',
+      'x-api-key': __ENV.LOAD_TEST_API_KEY || '',
     };
 
     const params = {

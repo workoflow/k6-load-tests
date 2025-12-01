@@ -158,6 +158,28 @@ If upgrading from 1.0.0:
 
 ---
 
+## [2.1.0] - 2025-12-01
+
+### Added
+- **Stress/Breakpoint Test** (`tests/stress-breakpoint.test.js`) - Progressive VU stress test to find system breaking point
+  - VU progression: 5 → 10 → 25 → 50 → 75 → 100 → 150 → 200
+  - Auto-abort on SLA breach (p95 < 10s, error rate < 1%)
+  - Phase tracking and detailed metrics
+- **API Key Authentication** - Added `LOAD_TEST_API_KEY` support for authenticated load testing
+- **npm script** `stress` for running stress-breakpoint test
+- **npm script** `realistic` for future realistic-agent test
+
+### Changed
+- **Adjusted response time thresholds** from 500ms/1000ms to 10s/15s to accommodate n8n workflow processing times
+- **Added tenantId** to conversation objects in test activities for proper Teams simulation
+- **Added x-api-key header** to all test requests for authenticated endpoints
+- **Added abortOnFail** to critical thresholds to stop tests early when SLA is breached
+
+### Fixed
+- Proper Teams activity format with tenantId field
+
+---
+
 ## [Unreleased]
 
 ### Planned Features

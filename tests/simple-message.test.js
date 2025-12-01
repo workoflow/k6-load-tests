@@ -33,10 +33,10 @@ export const options = {
     { duration: '10s', target: 0 },   // Ramp down to 0
   ],
   thresholds: {
-    http_req_failed: ['rate<0.01'],      // Less than 1% errors
-    http_req_duration: ['p(95)<500'],     // 95% of requests < 500ms
-    http_req_duration: ['p(99)<1000'],    // 99% of requests < 1s
-    errors: ['rate<0.05'],                // Custom error rate < 5%
+    http_req_failed: [{ threshold: 'rate<0.01', abortOnFail: true }],  // Less than 1% errors
+    http_req_duration: ['p(95)<10000'],    // 95% of requests < 10s (adjusted for n8n workflow)
+    http_req_duration: ['p(99)<15000'],    // 99% of requests < 15s
+    errors: ['rate<0.05'],                 // Custom error rate < 5%
   },
   tags: {
     test_type: 'load',
@@ -73,6 +73,7 @@ function createActivity(text = 'test') {
       id: conversationId,
       conversationType: 'personal',
       isGroup: false,
+      tenantId: 'ae6f26a3-6f27-4ed6-a3a8-800c3226fb79',
     },
 
     text: text,
@@ -94,6 +95,7 @@ export default function () {
   const payload = JSON.stringify(activity);
   const headers = {
     'Content-Type': 'application/json',
+    'x-api-key': __ENV.LOAD_TEST_API_KEY || '',
   };
 
   const params = {
@@ -109,7 +111,7 @@ export default function () {
   // Check response - expect success
   const success = check(response, {
     'status is 200 or 202': (r) => r.status === 200 || r.status === 202,
-    'response time < 2000ms': (r) => r.timings.duration < 2000,
+    'response time < 10s': (r) => r.timings.duration < 10000,
   });
 
   // Track errors

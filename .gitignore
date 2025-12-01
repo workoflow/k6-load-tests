@@ -38,3 +38,5 @@ recordings/
 # Temporary files
 tmp/
 temp/
+.claude
+LOAD_TEST_REPORT.md

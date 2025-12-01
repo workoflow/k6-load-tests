@@ -7,6 +7,8 @@
   "scripts": {
     "test": "k6 run tests/simple-message.test.js",
     "smoke": "k6 run tests/smoke.test.js",
+    "stress": "k6 run tests/stress-breakpoint.test.js",
+    "realistic": "k6 run tests/realistic-agent.test.js",
     "verify": "node scripts/verify-setup.js"
   },
   "keywords": [
