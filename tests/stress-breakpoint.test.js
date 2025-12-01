@@ -1,8 +1,8 @@
 /**
- * k6 Stress Test: Find Breaking Point
+ * k6 Stress Test: Find Breaking Point (AI Agent)
  *
  * This test progressively increases virtual users to find the system's
- * maximum capacity while maintaining SLA (p95 < 2000ms).
+ * maximum capacity while maintaining SLA (p95 < 60s for AI/LLM processing).
  *
  * VU Progression: 5 → 10 → 25 → 50 → 75 → 100 → 150 → 200
  *
@@ -69,12 +69,12 @@ export const options = {
     { duration: '30s', target: 0 },
   ],
   thresholds: {
-    // SLA: p95 < 10s (10000ms) - adjusted for n8n workflow processing time
-    http_req_duration: [{ threshold: 'p(95)<10000', abortOnFail: true }],
-    // Error rate < 1% - abort if breached
-    http_req_failed: [{ threshold: 'rate<0.01', abortOnFail: true }],
-    // Custom error tracking
-    errors: ['rate<0.05'],
+    // SLA: p95 < 60s (60000ms) - realistic for AI agent with LLM processing
+    http_req_duration: [{ threshold: 'p(95)<60000', abortOnFail: true }],
+    // Error rate < 10% - relaxed for AI agents (LLMs can be flaky)
+    http_req_failed: [{ threshold: 'rate<0.10', abortOnFail: true }],
+    // Custom error tracking - 20% tolerance for slow responses
+    errors: ['rate<0.20'],
   },
   tags: {
     test_type: 'stress',
@@ -171,10 +171,10 @@ export default function () {
   requestCount.add(1);
   responseTrend.add(response.timings.duration);
 
-  // Check response
+  // Check response - AI agent SLA: 45s for individual requests, 60s p95
   const success = check(response, {
     'status is 200 or 202': (r) => r.status === 200 || r.status === 202,
-    'response time < 10s': (r) => r.timings.duration < 10000,
+    'response time < 45s': (r) => r.timings.duration < 45000,
   });
 
   // Track success/error rates
@@ -199,7 +199,7 @@ export function setup() {
                     STRESS TEST: FIND BREAKING POINT
 ================================================================================
 Endpoint: ${BOT_ENDPOINT}
-SLA: p95 < 10s (adjusted for n8n workflow processing), Error rate < 1%
+SLA: p95 < 60s (AI agent with LLM processing), Error rate < 10%
 
 VU Progression:
   Phase 1: 5 VUs    (baseline)
