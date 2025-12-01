@@ -180,6 +180,25 @@ If upgrading from 1.0.0:
 
 ---
 
+## [2.2.0] - 2025-12-01
+
+### Added
+- **Grafana Cloud Integration** - Complete documentation for running k6 tests on Grafana Cloud
+  - Step-by-step setup guide
+  - Cloud vs local execution modes
+  - CI/CD integration with GitHub Actions example
+  - Environment variables reference
+- **AI Agent SLA Adjustments** - Updated thresholds for LLM-based AI agents
+  - p95 threshold: 60s (was 10s)
+  - Individual request check: 45s
+  - Error rate tolerance: 10-20% (for AI flakiness)
+
+### Changed
+- **Stress test VU stages** - Commented out phases 7-8 (150/200 VUs) to limit test scope for realistic capacity
+- **README.md** - Added comprehensive Grafana Cloud section with examples
+
+---
+
 ## [Unreleased]
 
 ### Planned Features

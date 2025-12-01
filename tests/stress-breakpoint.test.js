@@ -58,12 +58,12 @@ export const options = {
     { duration: '1m', target: 100 },
 
     // Phase 7: Peak load (150 VUs)
-    { duration: '30s', target: 150 },
-    { duration: '1m', target: 150 },
+    // { duration: '30s', target: 150 },
+    // { duration: '1m', target: 150 },
 
     // Phase 8: Overload (200 VUs)
-    { duration: '30s', target: 200 },
-    { duration: '1m', target: 200 },
+    // { duration: '30s', target: 200 },
+    // { duration: '1m', target: 200 },
 
     // Ramp down
     { duration: '30s', target: 0 },

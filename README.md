@@ -337,6 +337,129 @@ npm run smoke    # Run smoke test (quick connectivity check)
 npm run verify   # Verify setup configuration
 ```
 
+## ☁️ Running on Grafana Cloud
+
+You can run k6 tests on Grafana Cloud for distributed load testing, persistent dashboards, and trend analysis.
+
+### Step 1: Create Grafana Cloud Account
+
+1. Go to [grafana.com/products/cloud](https://grafana.com/products/cloud/)
+2. Sign up for a free account (includes k6 Cloud free tier: 50 VUh/month)
+3. Navigate to **k6** in the left sidebar
+
+### Step 2: Get Your API Token
+
+1. In Grafana Cloud, go to **k6 → Settings → API Tokens**
+2. Click **Generate Token**
+3. Copy the token (you'll only see it once!)
+
+### Step 3: Authenticate k6 CLI
+
+```bash
+# Option A: Interactive login
+k6 cloud login
+
+# Option B: Use environment variable (recommended for CI/CD)
+export K6_CLOUD_TOKEN=<YOUR_API_TOKEN>
+```
+
+### Step 4: Run Tests on Grafana Cloud
+
+There are **two modes** to run tests:
+
+#### Mode 1: Cloud Execution (tests run on Grafana's infrastructure)
+
+```bash
+# Basic cloud run
+k6 cloud run tests/stress-breakpoint.test.js
+
+# With environment variables (use -e flag)
+k6 cloud run \
+  -e BOT_ENDPOINT="https://bot.vcec.cloud/api/messages" \
+  -e LOAD_TEST_API_KEY="your-api-key-here" \
+  tests/stress-breakpoint.test.js
+```
+
+#### Mode 2: Local Execution + Cloud Streaming (run locally, results in cloud)
+
+```bash
+# Run locally but stream results to Grafana Cloud dashboard
+k6 cloud run --local-execution \
+  -e BOT_ENDPOINT="https://bot.vcec.cloud/api/messages" \
+  -e LOAD_TEST_API_KEY="your-api-key-here" \
+  tests/stress-breakpoint.test.js
+
+# Alternative syntax (older but still works)
+k6 run --out cloud \
+  -e BOT_ENDPOINT="https://bot.vcec.cloud/api/messages" \
+  -e LOAD_TEST_API_KEY="your-api-key-here" \
+  tests/stress-breakpoint.test.js
+```
+
+### Environment Variables Summary
+
+| Method | Syntax | Use Case |
+|--------|--------|----------|
+| `-e` flag | `k6 cloud run -e VAR=value` | Script-specific variables |
+| System env | `export VAR=value && k6 cloud run` | CI/CD pipelines |
+| `K6_CLOUD_TOKEN` | `export K6_CLOUD_TOKEN=xxx` | Authentication |
+
+### CI/CD Integration (GitHub Actions)
+
+```yaml
+name: Load Test
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 6 * * 1'  # Weekly on Monday
+
+jobs:
+  load-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install k6
+        run: |
+          sudo gpg -k
+          sudo gpg --no-default-keyring --keyring /usr/share/keyrings/k6-archive-keyring.gpg \
+            --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys C5AD17C747E3415A3642D57D77C6C491D6AC1D69
+          echo "deb [signed-by=/usr/share/keyrings/k6-archive-keyring.gpg] https://dl.k6.io/deb stable main" \
+            | sudo tee /etc/apt/sources.list.d/k6.list
+          sudo apt-get update && sudo apt-get install k6
+
+      - name: Run k6 Cloud Test
+        env:
+          K6_CLOUD_TOKEN: ${{ secrets.K6_CLOUD_TOKEN }}
+        run: |
+          k6 cloud run \
+            -e BOT_ENDPOINT="${{ secrets.BOT_ENDPOINT }}" \
+            -e LOAD_TEST_API_KEY="${{ secrets.LOAD_TEST_API_KEY }}" \
+            tests/stress-breakpoint.test.js
+```
+
+### Grafana Cloud vs Local Execution
+
+| Feature | Local (`k6 run`) | Cloud (`k6 cloud run`) |
+|---------|------------------|------------------------|
+| Execution location | Your machine | Grafana's infrastructure |
+| Distributed load | Single machine | Multiple regions |
+| Results storage | Local JSON/CSV | Persistent cloud dashboard |
+| Trend analysis | Manual | Built-in graphs & comparisons |
+| Sharing results | Export files | Share URL |
+| Max VUs | Limited by machine | Scales to thousands |
+| Cost | Free | Free tier: 50 VUh/month |
+
+### Viewing Results
+
+After running a cloud test:
+1. k6 outputs a URL to your test results
+2. Open the URL in your browser
+3. View real-time metrics, graphs, and analysis
+4. Compare with previous test runs
+5. Share the URL with your team
+
 ## 🤝 Contributing
 
 To add new features or tests:
